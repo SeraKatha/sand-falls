@@ -1,0 +1,68 @@
+use simulation::{Cell, Grid, World};
+use macroquad::prelude::*;
+
+
+fn init_chunk_texture() -> Texture2D {
+    let bytes =  [128u8; World::CELLS_PER_CHUNK * 4];
+    Texture2D::from_rgba8(
+        World::CHUNK_SIZE as u16,
+        World::CHUNK_SIZE as u16,
+        &bytes,
+    )
+}
+
+fn cell_to_color(cell : Cell) -> [u8; 4] {
+    match cell {
+        Cell::AIR   => [  0,   0,   0, 255],
+        Cell::SAND  => [242, 203, 151, 255],
+        Cell::STONE => [ 93,  93,  93, 255],
+    }
+}
+
+#[macroquad::main("SandFalls")]
+async fn main() {
+    let world = World::new((256, 256));
+    
+    if let Ok(mut world) = world {
+        let num_of_chunks_xy = world.num_of_chunks_xy();
+        let num_of_chunks_total = world.num_of_chunks();
+        let mut textures : Vec<Texture2D> = std::iter::repeat_with(init_chunk_texture).take(num_of_chunks_total).collect();
+        loop {
+            world.tick();
+            clear_background(BLACK);
+            
+
+
+            for chunk_index in 0..num_of_chunks_total {
+                let xy = Grid::index_to_coord(chunk_index, num_of_chunks_xy);
+                let (x, y) = xy;
+                let chunk = world.get_chunk(xy);
+                let texture = &mut textures[chunk_index]; 
+                
+                let mut bytes = [0u8; 4 * World::CELLS_PER_CHUNK];
+                for local_index in 0..World::CELLS_PER_CHUNK {
+                    let [r, g, b, a] = cell_to_color(chunk[local_index]);
+                    bytes[4 * local_index + 0] = r;
+                    bytes[4 * local_index + 1] = g;
+                    bytes[4 * local_index + 2] = b;
+                    bytes[4 * local_index + 3] = a;
+                }
+
+                texture.update_from_bytes(
+                    World::CHUNK_SIZE as u32,
+                    World::CHUNK_SIZE as u32,
+                    &bytes
+                );
+
+                draw_texture(
+                    texture,
+                    (x * World::CHUNK_SIZE) as f32,
+                    (y * World::CHUNK_SIZE) as f32,
+                    WHITE
+                );
+            }
+            
+            next_frame().await
+        }
+    }
+}
