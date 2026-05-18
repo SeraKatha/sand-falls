@@ -141,29 +141,6 @@ impl Simulation {
         }
     }
 
-
-    fn calc_pull_field(read_world : &WorldView<Cell>, global_coord : IVec2) -> [bool; 8] {
-        let mut pull_vectors = [false; Self::NEIGHBOR_COUNT];
-        let cell_center = read_world.get_cell(global_coord);
-        let cell_above  = read_world.get_cell(global_coord + ivec2(0, -1));
-
-        return [match cell_center {
-            Cell::AIR   => true,
-            Cell::SAND  => false,
-            Cell::STONE => false,
-        }; Self::NEIGHBOR_COUNT];
-    }
-
-
-    fn update_pull_fields(chunk_index : usize, write_chunk : &mut [[bool; 8]], read_world : &WorldView<Cell>) {
-        let chunk_coord = Grid::map1Dto2D(chunk_index, read_world.size() / (Self::CHUNK_SIZE as i32));
-        for local_index in 0..Self::CELLS_PER_CHUNK {
-            let local_coord = Grid::map1Dto2D(local_index, IVec2::ONE * (Self::CHUNK_SIZE as i32));
-            let global_coord = chunk_coord * (Self::CHUNK_SIZE as i32) + local_coord;
-            write_chunk[local_index] = Self::calc_pull_field(read_world, global_coord);
-        }
-    }
-
     
     fn pick_pulls(
         read_world_push : &WorldView<IVec2>,
@@ -238,11 +215,6 @@ impl Simulation {
             .par_chunks_mut(Self::CELLS_PER_CHUNK)
             .enumerate()
             .for_each(|(chunk_index, chunk)| Self::update_push_vectors(chunk_index, chunk, &read_world));
-        
-        self.pull_buffer
-            .par_chunks_mut(Self::CELLS_PER_CHUNK)
-            .enumerate()
-            .for_each(|(chunk_index, chunk)| Self::update_pull_fields(chunk_index, chunk, &read_world));
         
         let read_world_push = WorldView::new(&self.push_buffer, self.world_size, IVec2::ZERO);
         
