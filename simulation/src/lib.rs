@@ -5,6 +5,7 @@ mod double_buffer;
 use double_buffer::DoubleBuffer;
 
 mod world_view;
+use macroquad::rand::ChooseRandom;
 use rayon::iter::{IndexedParallelIterator, ParallelIterator};
 use rayon::slice::{ParallelSlice, ParallelSliceMut};
 use world_view::WorldView;
@@ -68,7 +69,7 @@ impl Simulation {
         }
         let num_of_cells : usize = (world_size.x * world_size.y) as usize;
         let cells = Vec::from_iter(
-            std::iter::repeat_with(|| match ::rand::random::<i32>() % 3 {
+            std::iter::repeat_with(|| match ::rand::random::<u32>() % 3 {
                 0 => Cell::AIR,
                 1 => Cell::SAND,
                 2 => Cell::STONE,
@@ -150,16 +151,21 @@ impl Simulation {
         for local_index in 0..Self::CELLS_PER_CHUNK {
             let local_coord = Grid::map1Dto2D(local_index, IVec2::ONE * (Self::CHUNK_SIZE as i32));
             let global_coord = chunk_coord * (Self::CHUNK_SIZE as i32) + local_coord;
+            let mut size = 0;
+            let mut pulls = [0; Self::NEIGHBOR_COUNT];
             for i in 0..Self::NEIGHBOR_COUNT {
                 let offset = Self::NEIGHBOR_IDX2OFFSET[i];
                 let push = read_world_push.get_cell(global_coord + offset);
                 if push == -offset {
-                    let mut new_pulls = [false; 8];
-                    new_pulls[i] = true;
-                    write_chunk_pull.set_cell(new_pulls, local_coord);
-                    break;
+                    pulls[size] = i;
+                    size += 1;
                 } 
             }
+            let mut new_pulls = [false; 8];
+            if let Some(picked_pull) = pulls[0..size].choose() {
+                new_pulls[*picked_pull] = true;
+            }
+            write_chunk_pull.set_cell(new_pulls, local_coord);
         }
     }
 
