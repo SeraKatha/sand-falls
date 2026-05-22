@@ -1,6 +1,7 @@
 use simulation::{Cell, Grid, Simulation};
 use macroquad::prelude::*;
-
+mod view;
+use view::View;
 
 fn init_chunk_texture() -> Texture2D {
     let bytes =  [128u8; Simulation::CELLS_PER_CHUNK * 4];
@@ -20,6 +21,19 @@ fn cell_to_color(cell : Cell) -> [u8; 4] {
     }
 }
 
+
+
+
+fn apply_tool(simulation : &mut Simulation, camera : &Camera2D) {
+    if macroquad::input::is_mouse_button_down(MouseButton::Left) {
+        let mouse_position = macroquad::input::mouse_position(); 
+        let global_coord = camera.screen_to_world(vec2(mouse_position.0, mouse_position.1));
+        println!("{:?} -> {:?}", mouse_position, global_coord);
+        simulation.write_cell(ivec2(global_coord.x as i32, global_coord.y as i32), Cell::SAND);
+    }
+}
+
+
 #[macroquad::main("SandFalls")]
 async fn main() {
     let world_size = ivec2(128, 128);
@@ -29,42 +43,17 @@ async fn main() {
     if let Ok(mut simulation) = simulation {
         let num_of_chunks_xy = simulation.num_of_chunks_xy();
         let num_of_chunks_total = simulation.num_of_chunks();
-        let mut camera = Camera2D {
-            zoom: 0.005 * vec2(1., screen_width() / screen_height()),
-            target: vec2(world_size.x as f32, world_size.y as f32) / 2.0,
-            ..Default::default()
-        };
-        set_camera(&camera);
         set_default_filter_mode(FilterMode::Nearest);
+        let world_size_f = vec2(world_size.x as f32, world_size.y as f32);
+        let mut view = View::new(world_size_f);
         let mut textures : Vec<Texture2D> = std::iter::repeat_with(init_chunk_texture).take(num_of_chunks_total).collect();
         loop {
-            let frame_time = macroquad::time::get_frame_time();
+            let camera = view.into_camera_2d(); 
+            set_camera(&camera);
             simulation.tick();
-            if macroquad::input::is_mouse_button_down(MouseButton::Left) {
-                let mouse_position = macroquad::input::mouse_position(); 
-                let global_coord = camera.screen_to_world(vec2(mouse_position.0, mouse_position.1));
-                println!("{:?} -> {:?}", mouse_position, global_coord);
-                simulation.write_cell(ivec2(global_coord.x as i32, global_coord.y as i32), Cell::SAND);
-            }
-            if macroquad::input::is_key_down(KeyCode::W) {
-                camera.target.y -= 32.0 * frame_time;
-            }
-            if macroquad::input::is_key_down(KeyCode::A) {
-                camera.target.x -= 32.0 * frame_time;
-            }
-            if macroquad::input::is_key_down(KeyCode::S) {
-                camera.target.y += 32.0 * frame_time;
-            }
-            if macroquad::input::is_key_down(KeyCode::D) {
-                camera.target.x += 32.0 * frame_time;
-            }
-            if macroquad::input::is_key_down(KeyCode::Q) {
-                camera.zoom += 1.0 * frame_time * camera.zoom;
-            }
-            if macroquad::input::is_key_down(KeyCode::E) {
-                camera.zoom -= 1.0 * frame_time * camera.zoom;
-            }
+            apply_tool(&mut simulation, &camera);
             simulation.swap_buffers();
+            view.update();
             clear_background(BLACK);
             set_camera(&camera);
             for chunk_index in 0..num_of_chunks_total {
