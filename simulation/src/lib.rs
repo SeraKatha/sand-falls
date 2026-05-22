@@ -73,7 +73,7 @@ impl Simulation {
         let cells = Vec::from_iter(
             std::iter::repeat_with(|| match ::rand::random::<u32>() % 4 {
                 0 => Cell::AIR,
-                1 => Cell::WATER,
+                1 => Cell::AIR,
                 2 => Cell::STONE,
                 3 => Cell::SAND,
                 _ => Cell::AIR,
@@ -253,7 +253,7 @@ impl Simulation {
             }
         }
 
-        println!("{array:?}");
+        // println!("{array:?}");
 
 
         self.push_buffer
@@ -276,8 +276,22 @@ impl Simulation {
             .enumerate()
             .map(|(chunk_index, chunk)| ChunkViewMut::new(chunk_index, chunk))
             .for_each(|mut write_chunk| Self::resolve_movements(&mut write_chunk, &read_world, &read_world_push, &read_world_pull));
-        
-        self.swap_buffers()
+    }
+
+
+    pub fn write_cell(&mut self, global_coord : IVec2, cell : Cell) {
+        if global_coord.x < 0 { return; }
+        if global_coord.y < 0 { return; }
+        if global_coord.x >= self.world_size.x { return; }
+        if global_coord.y >= self.world_size.y { return; }
+        let (read_buffer, write_buffer) = self.cells.pick_read_and_write_buffer();
+        let local_coord = global_coord % (Simulation::CHUNK_SIZE as i32); 
+        let local_index = Grid::map2Dto1D(local_coord, IVec2::ONE * (Simulation::CHUNK_SIZE as i32));
+
+        let chunk_coord = global_coord / (Simulation::CHUNK_SIZE as i32); 
+        let chunk_index = Grid::map2Dto1D(chunk_coord, self.world_size / (Simulation::CHUNK_SIZE as i32));
+        let global_index = chunk_index * Simulation::CELLS_PER_CHUNK + local_index;
+        write_buffer[global_index] = cell;
     }
 
 
@@ -292,7 +306,7 @@ impl Simulation {
     }
 
 
-    fn swap_buffers(&mut self) {
+    pub fn swap_buffers(&mut self) {
         self.cells.swap();
     } 
 }
