@@ -173,7 +173,9 @@ impl Application {
                 world_size_x = (world_size_x / CHUNK_SIZE_F).round() * CHUNK_SIZE_F;
                 world_size_y = (world_size_y / CHUNK_SIZE_F).round() * CHUNK_SIZE_F;
                 self.new_world_size = ivec2(world_size_x as i32, world_size_y as i32);
-
+                if ui.button(None, "Default World Size") {
+                    self.new_world_size = Self::DEFAULT_WORLD_SIZE;
+                }
                 if ui.button(None, "New World") {
                     self.generate_simulation(self.new_world_size);
                 }
