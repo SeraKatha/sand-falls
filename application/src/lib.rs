@@ -94,7 +94,7 @@ impl Application {
         }
         self.simulation.swap_buffers();
         self.view.update();
-        clear_background(BLACK);
+        clear_background(DARKGRAY);
         set_camera(&camera);
     }
 
@@ -174,10 +174,7 @@ impl Application {
                 world_size_y = (world_size_y / CHUNK_SIZE_F).round() * CHUNK_SIZE_F;
                 self.new_world_size = ivec2(world_size_x as i32, world_size_y as i32);
 
-                if ui.button(None, "Noise World") {
-                    self.generate_simulation(self.new_world_size);
-                }
-                if ui.button(None, "Empty World") {
+                if ui.button(None, "New World") {
                     self.generate_simulation(self.new_world_size);
                 }
             }

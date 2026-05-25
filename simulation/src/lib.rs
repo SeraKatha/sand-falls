@@ -71,13 +71,7 @@ impl Simulation {
         }
         let num_of_cells : usize = (world_size.x * world_size.y) as usize;
         let cells = Vec::from_iter(
-            std::iter::repeat_with(|| match ::rand::random::<u32>() % 4 {
-                0 => Cell::AIR,
-                1 => Cell::AIR,
-                2 => Cell::STONE,
-                3 => Cell::SAND,
-                _ => Cell::AIR,
-            })
+            std::iter::repeat_with(|| Cell::AIR)
             .take(num_of_cells));
 
         let push_buffer = Vec::from_iter(std::iter::repeat_with(||IVec2::ZERO).take(num_of_cells));
