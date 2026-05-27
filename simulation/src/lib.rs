@@ -293,5 +293,10 @@ impl Simulation {
 
     pub fn swap_buffers(&mut self) {
         self.cells.swap();
-    } 
+    }
+
+
+    pub fn size(& self) -> IVec2 {
+        return self.world_size;
+    }
 }

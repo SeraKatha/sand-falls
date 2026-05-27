@@ -1,3 +1,5 @@
+use std::time::{Duration, Instant};
+
 use simulation::{Cell, Grid, Simulation};
 use macroquad::prelude::*;
 use macroquad::ui::{
@@ -36,6 +38,8 @@ pub struct Application {
     dropper : tool::Dropper,
     eraser : tool::Dropper,
     new_world_size : IVec2,
+    last_tick_duration : Duration,
+    last_render_duration : Duration,
 }
 
 
@@ -49,7 +53,9 @@ impl Application {
             let eraser = tool::Dropper::new(Cell::AIR, 3);
             let new_world_size = Self::DEFAULT_WORLD_SIZE;
             let mut application = Application {
-                simulation, view, textures, dropper, eraser, new_world_size
+                simulation, view, textures, dropper, eraser, new_world_size,
+                last_tick_duration : Duration::ZERO,
+                last_render_duration : Duration::ZERO,
             };
             application.generate_simulation(Self::DEFAULT_WORLD_SIZE);
             return application;
@@ -76,7 +82,11 @@ impl Application {
     pub fn update(&mut self) {
         let camera = self.view.into_camera_2d(); 
         set_camera(&camera);
+        let time_tick_pre = Instant::now();
         self.simulation.tick();
+        let time_tick_post = Instant::now();
+        self.last_tick_duration = time_tick_post.duration_since(time_tick_pre);
+        println!("{}", self.last_tick_duration.as_micros());
         let mouse_position = macroquad::input::mouse_position(); 
         let global_coord = camera.screen_to_world(vec2(mouse_position.0, mouse_position.1));
         if !root_ui().is_mouse_over(mouse_position.into()) {
@@ -95,6 +105,7 @@ impl Application {
 
 
     pub fn render(&mut self) {
+        let time_render_pre = Instant::now();
         let num_of_chunks_xy = self.simulation.num_of_chunks_xy();
         let num_of_chunks_total = self.simulation.num_of_chunks();
         for chunk_index in 0..num_of_chunks_total {
@@ -124,6 +135,8 @@ impl Application {
                 WHITE
             );
         }
+        let time_render_post = Instant::now();
+        self.last_render_duration = time_render_post.duration_since(time_render_pre);
     }
 
     fn ui_tool(&mut self) {
@@ -153,7 +166,7 @@ impl Application {
 
     fn ui_world(&mut self) {
         widgets::Window::new(hash!(), vec2(0.0, 150.0), vec2(200.0, 150.0))
-            .label("World")
+            .label("World Creator")
             .movable(false)
             .ui(&mut root_ui(), |ui| {
                 let mut world_size_x : f32 = self.new_world_size.x as f32;
@@ -178,8 +191,22 @@ impl Application {
         );
     }
 
+    fn ui_performance(&mut self) {
+        widgets::Window::new(hash!(), vec2(0.0, 300.0), vec2(200.0, 150.0))
+            .label("Performance")
+            .movable(false)
+            .ui(&mut root_ui(), |ui| {
+                ui.label(None, &format!("World Size: {}x{}", self.simulation.size().x, self.simulation.size().y));
+                ui.label(None, &format!("FPS:        {:.2}", 1.0 / get_frame_time()));
+                ui.label(None, &format!("Sim tick:   {} ms", (self.last_tick_duration.as_micros() as f32) / 1000.0));
+                ui.label(None, &format!("Render:     {} ms", (self.last_render_duration.as_micros() as f32) / 1000.0));
+            }
+        );
+    }
+
     pub fn ui(&mut self) {
         self.ui_tool();
         self.ui_world();
+        self.ui_performance();
     }
 }
