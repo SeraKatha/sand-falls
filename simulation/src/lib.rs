@@ -15,6 +15,8 @@ use world_view::WorldView;
 mod chunk_view;
 use chunk_view::ChunkViewMut;
 
+use crate::world_view::WorldViewMut;
+
 
 pub enum Error {
     InvalidWorldSize,
@@ -274,18 +276,9 @@ impl Simulation {
 
 
     pub fn write_cell(&mut self, global_coord : IVec2, cell : Cell) {
-        if global_coord.x < 0 { return; }
-        if global_coord.y < 0 { return; }
-        if global_coord.x >= self.world_size.x { return; }
-        if global_coord.y >= self.world_size.y { return; }
-        let (read_buffer, write_buffer) = self.cells.pick_read_and_write_buffer();
-        let local_coord = global_coord % (Simulation::CHUNK_SIZE as i32); 
-        let local_index = Grid::map2Dto1D(local_coord, IVec2::ONE * (Simulation::CHUNK_SIZE as i32));
-
-        let chunk_coord = global_coord / (Simulation::CHUNK_SIZE as i32); 
-        let chunk_index = Grid::map2Dto1D(chunk_coord, self.world_size / (Simulation::CHUNK_SIZE as i32));
-        let global_index = chunk_index * Simulation::CELLS_PER_CHUNK + local_index;
-        write_buffer[global_index] = cell;
+        let (_read_buffer, write_buffer) = self.cells.pick_read_and_write_buffer();
+        let mut world_mut = WorldViewMut::new(write_buffer, self.world_size, Cell::STONE);
+        world_mut.set_cell(global_coord, cell);
     }
 
 
