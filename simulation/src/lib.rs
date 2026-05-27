@@ -220,7 +220,7 @@ impl Simulation {
             for n in 0..Self::NEIGHBOR_COUNT {
                 let offset = Self::NEIGHBOR_IDX2OFFSET[n];
                 if target_pull[n] && center_push == -offset {
-                    cell = Cell::AIR;
+                    cell = read_world.get_cell(global_coord + center_push);
                 }
             }
             for n in 0..Self::NEIGHBOR_COUNT {
