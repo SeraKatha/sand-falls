@@ -246,9 +246,6 @@ impl Simulation {
                 array[read_world.get_cell(ivec2(x, y)) as usize] += 1;
             }
         }
-
-        // println!("{array:?}");
-
         self.push_buffer
             .par_chunks_mut(Self::CELLS_PER_CHUNK)
             .enumerate()
@@ -271,6 +268,7 @@ impl Simulation {
             .for_each(|mut write_chunk| Self::resolve_movements(&mut write_chunk, &read_world, &read_world_push, &read_world_pull));
     }
 
+    // Just copies the read buffer to write buffer. useful for skipping simulation ticks but still use write_cell.
     pub fn pass(&mut self) {
         let (read_buffer, write_buffer) = self.cells.pick_read_and_write_buffer();
         write_buffer.copy_from_slice(&read_buffer);

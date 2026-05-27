@@ -32,6 +32,36 @@ fn cell_to_color(cell : Cell) -> [u8; 4] {
 }
 
 
+struct Pulse {
+    base_freq : f32,
+    speed_scale : f32,
+    time_since_last_tick : f32,
+}
+
+
+impl Pulse {
+    pub fn new(base_freq : f32) -> Self {
+        return Self { base_freq, speed_scale : 1.0, time_since_last_tick: 0.0 };
+    }
+
+    pub fn tick(&mut self, delta_time : f32) -> bool {
+        // Round delta_time to a integer frame rate to prevent stuttering from slight FPS variation e.g. 59.9
+        self.time_since_last_tick += 1.0 / (1.0 / (delta_time * self.speed_scale)).round();
+        if self.time_since_last_tick >= 1.0 / self.base_freq {
+            self.time_since_last_tick -= 1.0 / self.base_freq;
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    pub fn get_speed_scale_mut(&mut self) -> &mut f32 {
+        &mut self.speed_scale
+    }
+}
+
+
 pub struct Application {
     simulation : Simulation,
     view : View,
@@ -41,8 +71,7 @@ pub struct Application {
     new_world_size : IVec2,
     last_tick_duration : Duration,
     last_render_duration : Duration,
-    speed : f32,
-    time_since_last_tick : f32,
+    pulse : Pulse,
 }
 
 
@@ -59,8 +88,7 @@ impl Application {
                 simulation, view, textures, dropper, eraser, new_world_size,
                 last_tick_duration : Duration::ZERO,
                 last_render_duration : Duration::ZERO,
-                speed : 1.0,
-                time_since_last_tick : 0.0,
+                pulse : Pulse::new(60.0),
             };
             application.generate_simulation(Self::DEFAULT_WORLD_SIZE);
             return application;
@@ -87,16 +115,11 @@ impl Application {
     pub fn update(&mut self) {
         let camera = self.view.into_camera_2d();
         set_camera(&camera);
-        self.time_since_last_tick += (get_frame_time() * 1.05) * self.speed;
-        if self.time_since_last_tick >= 2.0 / 60.0 {
-            self.time_since_last_tick -= 1.0 / 60.0;
-        }
-        if self.time_since_last_tick >= 1.0 / 60.0 {
+        if self.pulse.tick(get_frame_time()) {
             let time_tick_pre = Instant::now();
             self.simulation.tick();
             let time_tick_post = Instant::now();
             self.last_tick_duration = time_tick_post.duration_since(time_tick_pre);
-            self.time_since_last_tick -= 1.0 / 60.0;
         }
         else {
             self.simulation.pass();
@@ -214,7 +237,7 @@ impl Application {
                 ui.label(None, &format!("FPS:        {:.2}", 1.0 / get_frame_time()));
                 ui.label(None, &format!("Sim tick:   {} ms", (self.last_tick_duration.as_micros() as f32) / 1000.0));
                 ui.label(None, &format!("Render:     {} ms", (self.last_render_duration.as_micros() as f32) / 1000.0));
-                ui.slider(hash!(), "Speed", 0.0..1.0, &mut self.speed);
+                ui.slider(hash!(), "Speed", 0.0..1.0, &mut self.pulse.get_speed_scale_mut());
             }
         );
     }
