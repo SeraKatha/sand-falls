@@ -1,5 +1,5 @@
 use macroquad::prelude::*;
-use simulation::{Simulation, Cell, ChunkView};
+use simulation::{Cell, ChunkView, Simulation};
 
 fn init_chunk_texture() -> Texture2D {
     let bytes = [128u8; Simulation::CELLS_PER_CHUNK * 4];
@@ -26,24 +26,24 @@ pub struct Renderer {
 impl Renderer {
     pub fn new() -> Self {
         return Self {
-            textures : Vec::new()
-        }
+            textures: Vec::new(),
+        };
     }
 
-    pub fn resize(&mut self, simulation : &Simulation) {
+    pub fn resize(&mut self, simulation: &Simulation) {
         let num_of_chunks_total = simulation.num_of_chunks();
         self.textures = std::iter::repeat_with(init_chunk_texture)
             .take(num_of_chunks_total)
             .collect();
     }
 
-
-    fn render_chunk<'a>(&mut self, chunk : ChunkView<'a, Cell>) {
+    fn render_chunk<'a>(&mut self, chunk: ChunkView<'a, Cell>) {
         let chunk_index = chunk.get_chunk_index();
         let chunk_coord = chunk.get_chunk_coord();
         let cells = chunk.get_cells();
         let texture = &mut self.textures[chunk_index];
 
+        // Write color channels into a byte buffer.
         let mut bytes = [0u8; 4 * Simulation::CELLS_PER_CHUNK];
         for local_index in 0..Simulation::CELLS_PER_CHUNK {
             let [r, g, b, a] = cell_to_color(cells[local_index]);
@@ -53,6 +53,7 @@ impl Renderer {
             bytes[4 * local_index + 3] = a;
         }
 
+        // Sends color data to the GPU
         texture.update_from_bytes(
             Simulation::CHUNK_SIZE as u32,
             Simulation::CHUNK_SIZE as u32,
@@ -67,12 +68,11 @@ impl Renderer {
         );
     }
 
-
-    pub fn render(&mut self, simulation : &Simulation) {
+    pub fn render(&mut self, simulation: &Simulation) {
         let num_of_chunks_total = simulation.num_of_chunks();
         for chunk_index in 0..num_of_chunks_total {
             let chunk = simulation.get_chunk_by_index(chunk_index);
             self.render_chunk(chunk);
-        } 
+        }
     }
 }

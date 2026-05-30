@@ -11,8 +11,8 @@ use simulation::{Cell, Simulation};
 use performance_monitor::PerformanceMonitor;
 use pulse::Pulse;
 use renderer::Renderer;
-use view::View;
 use tool::Tool;
+use view::View;
 
 pub struct Application {
     simulation: Simulation,
@@ -51,7 +51,16 @@ impl Application {
         }
     }
 
-    pub fn generate_simulation(&mut self, world_size: IVec2) {
+    pub async fn run(&mut self) {
+        loop {
+            self.update();
+            self.render();
+            self.ui();
+            next_frame().await
+        }
+    }
+
+    fn generate_simulation(&mut self, world_size: IVec2) {
         let simulation = Simulation::new(world_size);
         if let Ok(simulation) = simulation {
             self.simulation = simulation;
@@ -62,41 +71,48 @@ impl Application {
         }
     }
 
-    pub fn update(&mut self) {
-        let camera = self.view.into_camera_2d();
-        set_camera(&camera);
+    fn update_simulation(&mut self) {
         if self.pulse.tick(get_frame_time()) {
+            // Update simulation when ready.
             self.performance_monitor.meassure_simulation(|| {
                 self.simulation.tick();
             });
         } else {
+            // Skip simulation steps when the simulation speed is slowed down
             self.simulation.pass();
         }
+    }
+
+    fn update_tool(&mut self) {
+        // Apply tool if user presses the corresponding mouse buttons
+        let camera = self.view.get_camera_2d();
         let mouse_position = macroquad::input::mouse_position();
-        let global_coord = camera.screen_to_world(vec2(mouse_position.0, mouse_position.1));
+        let global_coord_vec2 = camera.screen_to_world(vec2(mouse_position.0, mouse_position.1));
+        let global_coord_ivec2 = ivec2(global_coord_vec2.x as i32, global_coord_vec2.y as i32);
+        // Checking whether the mouse is over an UI element prevent accidentally drawing cells behind the UI.
         if !root_ui().is_mouse_over(mouse_position.into()) {
-            if macroquad::input::is_mouse_button_down(MouseButton::Left) {
-                self.dropper.apply(
-                    &mut self.simulation,
-                    ivec2(global_coord.x as i32, global_coord.y as i32),
-                );
+            if is_mouse_button_down(MouseButton::Left) {
+                self.dropper.apply(&mut self.simulation, global_coord_ivec2);
             }
-            if macroquad::input::is_mouse_button_down(MouseButton::Right) {
-                self.eraser.apply(
-                    &mut self.simulation,
-                    ivec2(global_coord.x as i32, global_coord.y as i32),
-                );
+            if is_mouse_button_down(MouseButton::Right) {
+                self.eraser.apply(&mut self.simulation, global_coord_ivec2);
             }
         }
+    }
+
+    fn update(&mut self) {
+        self.update_simulation();
+        self.update_tool();
         self.simulation.swap_buffers();
         self.view.update();
-        clear_background(DARKGRAY);
-        set_camera(&camera);
         self.performance_monitor.meassure_frame();
     }
 
-    pub fn render(&mut self) {
+    fn render(&mut self) {
         self.performance_monitor.meassure_rendering(|| {
+            let camera = self.view.get_camera_2d();
+            set_camera(camera);
+            clear_background(DARKGRAY);
             self.renderer.render(&self.simulation);
         });
     }
