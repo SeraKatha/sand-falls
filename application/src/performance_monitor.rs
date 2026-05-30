@@ -1,4 +1,4 @@
-use std::{iter::Sum, ops::{Add, Div}, time::{Duration, Instant}};
+use std::{ops::{Add, Div}, time::{Duration, Instant}};
 
 use macroquad::time::get_frame_time;
 

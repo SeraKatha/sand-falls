@@ -12,6 +12,7 @@ use performance_monitor::PerformanceMonitor;
 use pulse::Pulse;
 use renderer::Renderer;
 use view::View;
+use tool::Tool;
 
 pub struct Application {
     simulation: Simulation,

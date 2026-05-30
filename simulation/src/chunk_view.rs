@@ -1,5 +1,5 @@
 use macroquad::prelude::*;
-use crate::{Cell, Grid, Simulation};
+use crate::{Grid, Simulation};
 
 pub struct ChunkViewMut<'a, T : Copy> {
     cells : &'a mut [T],

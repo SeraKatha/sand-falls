@@ -1,5 +1,5 @@
 use macroquad::prelude::*;
-use simulation::{Simulation, Cell, Grid, ChunkView};
+use simulation::{Simulation, Cell, ChunkView};
 
 fn init_chunk_texture() -> Texture2D {
     let bytes = [128u8; Simulation::CELLS_PER_CHUNK * 4];
