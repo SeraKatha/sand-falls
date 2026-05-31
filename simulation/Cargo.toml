@@ -9,3 +9,18 @@ edition = "2024"
 macroquad = "0.4.14"
 rayon = "1.12.0"
 rand = "0.10.1"
+
+[dev-dependencies]
+criterion = { version = "0.8", features = ["html_reports"] }
+
+[[bench]]
+name = "small_world"
+harness = false
+
+[[bench]]
+name = "medium_world"
+harness = false
+
+[[bench]]
+name = "large_world"
+harness = false

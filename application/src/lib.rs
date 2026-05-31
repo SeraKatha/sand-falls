@@ -231,7 +231,7 @@ impl Application {
             });
     }
 
-    pub fn ui(&mut self) {
+    fn ui(&mut self) {
         self.ui_tool();
         self.ui_world();
         self.ui_performance();

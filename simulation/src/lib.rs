@@ -224,16 +224,10 @@ impl Simulation {
     }
 
     pub fn tick(&mut self) {
-        let mut array = [0i32; 4];
         let world_size = self.size();
 
         let (read_buffer, write_buffer) = self.cells.pick_read_and_write_buffer();
         let read_world = WorldView::new(read_buffer, world_size, Cell::STONE);
-        for x in 0..world_size.x {
-            for y in 0..world_size.y {
-                array[read_world.get_cell(ivec2(x, y)) as usize] += 1;
-            }
-        }
         self.push_buffer
             .par_chunks_mut(Self::CELLS_PER_CHUNK)
             .enumerate()
