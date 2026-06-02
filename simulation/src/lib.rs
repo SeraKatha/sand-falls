@@ -95,6 +95,7 @@ impl Simulation {
         let cell_side_a = read_world.get_cell(global_coord + offset_a);
         let cell_side_b = read_world.get_cell(global_coord + offset_b);
         return match cell_center {
+            Cell::Barrier => IVec2::ZERO,
             Cell::Air => IVec2::ZERO,
             Cell::Sand => {
                 if cell_below.is_non_solid() {
@@ -264,7 +265,7 @@ impl Simulation {
         let world_size = self.size();
 
         let (read_buffer, write_buffer) = self.cells.pick_read_and_write_buffer();
-        let read_world = WorldView::new(read_buffer, world_size, Cell::Stone);
+        let read_world = WorldView::new(read_buffer, world_size, Cell::Barrier);
         self.push_buffer
             .par_chunks_mut(Self::CELLS_PER_CHUNK)
             .enumerate()
@@ -298,7 +299,7 @@ impl Simulation {
                 )
             });
         
-        let read_world_transformation = &WorldView::new(&self.transmutation_buffer, world_size, Cell::Stone);
+        let read_world_transformation = &WorldView::new(&self.transmutation_buffer, world_size, Cell::Barrier);
         
         write_buffer
             .par_chunks_mut(Self::CELLS_PER_CHUNK)
@@ -320,7 +321,7 @@ impl Simulation {
 
     pub fn write_cell(&mut self, global_coord: IVec2, cell: Cell) {
         let (_read_buffer, write_buffer) = self.cells.pick_read_and_write_buffer();
-        let mut world_mut = WorldViewMut::new(write_buffer, self.world_size, Cell::Stone);
+        let mut world_mut = WorldViewMut::new(write_buffer, self.world_size, Cell::Barrier);
         world_mut.set_cell(global_coord, cell);
     }
 

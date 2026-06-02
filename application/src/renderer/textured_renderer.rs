@@ -38,6 +38,7 @@ impl TexturedRenderer {
     pub fn new() -> Self {
         let cell_textures : [Image; Cell::NUM_OF_TYPES] = [
             Image::from_file_with_format(include_bytes!("../../../assets/textures/air.png"), Some(ImageFormat::Png)).unwrap(),
+            Image::from_file_with_format(include_bytes!("../../../assets/textures/air.png"), Some(ImageFormat::Png)).unwrap(),
             Image::from_file_with_format(include_bytes!("../../../assets/textures/sand.png"), Some(ImageFormat::Png)).unwrap(),
             Image::from_file_with_format(include_bytes!("../../../assets/textures/stone.png"), Some(ImageFormat::Png)).unwrap(),
             Image::from_file_with_format(include_bytes!("../../../assets/textures/water.png"), Some(ImageFormat::Png)).unwrap(),

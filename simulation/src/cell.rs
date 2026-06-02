@@ -1,6 +1,7 @@
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[repr(u8)]
 pub enum Cell {
+    Barrier,
     Air,
     Sand,
     Stone,
@@ -10,7 +11,7 @@ pub enum Cell {
 }
 
 impl Cell {
-    pub const NUM_OF_TYPES: usize = 6; //
+    pub const NUM_OF_TYPES: usize = 7; //
 }
 
 impl Cell {
@@ -39,6 +40,7 @@ impl Cell {
 
     pub fn is_solid(&self) -> bool {
         match self {
+            Self::Barrier => true,
             Self::Sand => true,
             Self::Stone => true,
             _ => false,

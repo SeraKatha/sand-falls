@@ -4,6 +4,7 @@ use super::Canvas;
 
 fn cell_to_color(cell: Cell) -> [u8; 4] {
     match cell {
+        Cell::Barrier => [0, 0, 0, 255],
         Cell::Air => [0, 0, 0, 255],
         Cell::Sand => [242, 203, 151, 255],
         Cell::Stone => [93, 93, 93, 255],
