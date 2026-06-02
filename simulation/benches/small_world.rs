@@ -7,11 +7,11 @@ fn benchmark(c: &mut Criterion) {
         for y in 0..world_size.y {
             for x in 0..world_size.x {
                 let cell = match rand::random::<u32>() % 4 {
-                    0 => simulation::Cell::AIR,
-                    1 => simulation::Cell::SAND,
-                    2 => simulation::Cell::STONE,
-                    3 => simulation::Cell::WATER,
-                    _ => simulation::Cell::AIR
+                    0 => simulation::Cell::Air,
+                    1 => simulation::Cell::Sand,
+                    2 => simulation::Cell::Stone,
+                    3 => simulation::Cell::Water,
+                    _ => simulation::Cell::Air
                 };
                 simulation.write_cell(ivec2(x, y), cell);
             }

@@ -11,6 +11,7 @@ use simulation::{Cell, Simulation};
 use performance_monitor::PerformanceMonitor;
 use pulse::Pulse;
 use renderer::SingleColorRenderer;
+use renderer::TexturedRenderer;
 use renderer::Renderer;
 use tool::Tool;
 use view::View;
@@ -18,7 +19,7 @@ use view::View;
 pub struct Application {
     simulation: Simulation,
     view: View,
-    renderer: SingleColorRenderer,
+    renderer: TexturedRenderer,
     dropper: tool::Dropper,
     eraser: tool::Dropper,
     new_world_size: IVec2,
@@ -31,9 +32,9 @@ impl Application {
     pub fn new() -> Application {
         if let Ok(simulation) = Simulation::new(ivec2(0, 0)) {
             let view = View::new(vec2(0.0, 0.0));
-            let renderer = SingleColorRenderer::new();
-            let dropper = tool::Dropper::new(Cell::SAND, 3);
-            let eraser = tool::Dropper::new(Cell::AIR, 3);
+            let renderer = TexturedRenderer::new();
+            let dropper = tool::Dropper::new(Cell::Sand, 3);
+            let eraser = tool::Dropper::new(Cell::Air, 3);
             let new_world_size = Self::WORLD_SIZE_DEFAULT;
             let mut application = Application {
                 simulation,
@@ -124,16 +125,16 @@ impl Application {
             .movable(false)
             .ui(&mut root_ui(), |ui| {
                 if ui.button(None, "Air") {
-                    self.dropper.set_material(Cell::AIR);
+                    self.dropper.set_material(Cell::Air);
                 }
                 if ui.button(None, "Sand") {
-                    self.dropper.set_material(Cell::SAND);
+                    self.dropper.set_material(Cell::Sand);
                 }
                 if ui.button(None, "Water") {
-                    self.dropper.set_material(Cell::WATER);
+                    self.dropper.set_material(Cell::Water);
                 }
                 if ui.button(None, "Stone") {
-                    self.dropper.set_material(Cell::STONE);
+                    self.dropper.set_material(Cell::Stone);
                 }
                 let mut tool_size = self.dropper.get_size() as f32;
                 ui.slider(0, "Tool Size", 1.0..10.0, &mut tool_size);

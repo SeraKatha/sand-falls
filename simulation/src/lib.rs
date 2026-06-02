@@ -6,7 +6,7 @@ use double_buffer::DoubleBuffer;
 
 use macroquad::rand::ChooseRandom;
 use rayon::iter::{IndexedParallelIterator, ParallelIterator};
-use rayon::slice::ParallelSliceMut;
+use rayon::slice::{ParallelSliceMut};
 
 mod chunk_view;
 pub use chunk_view::ChunkView;
@@ -14,7 +14,7 @@ pub use chunk_view::ChunkViewMut;
 mod world_view;
 pub use world_view::WorldView;
 pub use world_view::WorldViewMut;
-mod grid;
+pub mod grid;
 
 pub enum Error {
     InvalidWorldSize,
@@ -24,11 +24,16 @@ pub enum Error {
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[repr(u8)]
 pub enum Cell {
-    AIR,
-    SAND,
-    STONE,
-    WATER,
+    Air,
+    Sand,
+    Stone,
+    Water,
 }
+
+impl Cell {
+    pub const NUM_OF_TYPES : usize = 4; // 
+}
+
 
 pub struct Simulation {
     cells: DoubleBuffer<Vec<Cell>>,
@@ -61,7 +66,7 @@ impl Simulation {
             return Err(Error::InvalidWorldSize);
         }
         let num_of_cells: usize = (world_size.x * world_size.y) as usize;
-        let cells = Vec::from_iter(std::iter::repeat_with(|| Cell::AIR).take(num_of_cells));
+        let cells = Vec::from_iter(std::iter::repeat_with(|| Cell::Air).take(num_of_cells));
 
         let push_buffer = Vec::from_iter(std::iter::repeat_with(|| IVec2::ZERO).take(num_of_cells));
         let pull_buffer = Vec::from_iter(std::iter::repeat_with(|| [false; 8]).take(num_of_cells));
@@ -99,41 +104,41 @@ impl Simulation {
         let cell_side_a = read_world.get_cell(global_coord + offset_a);
         let cell_side_b = read_world.get_cell(global_coord + offset_b);
         return match cell_center {
-            Cell::AIR => IVec2::ZERO,
-            Cell::SAND => {
-                if cell_below == Cell::AIR {
+            Cell::Air => IVec2::ZERO,
+            Cell::Sand => {
+                if cell_below == Cell::Air {
                     ivec2(0, 1)
-                } else if cell_below_a == Cell::AIR {
+                } else if cell_below_a == Cell::Air {
                     ivec2(0, 1) + offset_a
-                } else if cell_below_b == Cell::AIR {
+                } else if cell_below_b == Cell::Air {
                     ivec2(0, 1) + offset_b
-                } else if cell_below == Cell::WATER {
+                } else if cell_below == Cell::Water {
                     ivec2(0, 1)
-                } else if cell_below_a == Cell::WATER {
+                } else if cell_below_a == Cell::Water {
                     ivec2(0, 1) + offset_a
-                } else if cell_below_b == Cell::WATER {
+                } else if cell_below_b == Cell::Water {
                     ivec2(0, 1) + offset_b
                 } else {
                     IVec2::ZERO
                 }
             }
-            Cell::STONE => IVec2::ZERO,
-            Cell::WATER => {
-                if cell_below == Cell::AIR {
+            Cell::Stone => IVec2::ZERO,
+            Cell::Water => {
+                if cell_below == Cell::Air {
                     ivec2(0, 1)
-                } else if cell_below_a == Cell::AIR {
+                } else if cell_below_a == Cell::Air {
                     ivec2(0, 1) + offset_a
-                } else if cell_below_b == Cell::AIR {
+                } else if cell_below_b == Cell::Air {
                     ivec2(0, 1) + offset_b
-                } else if cell_side_a == Cell::AIR {
+                } else if cell_side_a == Cell::Air {
                     offset_a
-                } else if cell_side_b == Cell::AIR {
+                } else if cell_side_b == Cell::Air {
                     offset_b
-                } else if cell_above == Cell::SAND {
+                } else if cell_above == Cell::Sand {
                     ivec2(0, -1)
-                } else if cell_above_a == Cell::SAND {
+                } else if cell_above_a == Cell::Sand {
                     ivec2(0, -1) + offset_a
-                } else if cell_above_b == Cell::SAND {
+                } else if cell_above_b == Cell::Sand {
                     ivec2(0, -1) + offset_b
                 } else {
                     IVec2::ZERO
@@ -227,7 +232,7 @@ impl Simulation {
         let world_size = self.size();
 
         let (read_buffer, write_buffer) = self.cells.pick_read_and_write_buffer();
-        let read_world = WorldView::new(read_buffer, world_size, Cell::STONE);
+        let read_world = WorldView::new(read_buffer, world_size, Cell::Stone);
         self.push_buffer
             .par_chunks_mut(Self::CELLS_PER_CHUNK)
             .enumerate()
@@ -270,7 +275,7 @@ impl Simulation {
 
     pub fn write_cell(&mut self, global_coord: IVec2, cell: Cell) {
         let (_read_buffer, write_buffer) = self.cells.pick_read_and_write_buffer();
-        let mut world_mut = WorldViewMut::new(write_buffer, self.world_size, Cell::STONE);
+        let mut world_mut = WorldViewMut::new(write_buffer, self.world_size, Cell::Stone);
         world_mut.set_cell(global_coord, cell);
     }
 
