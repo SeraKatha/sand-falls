@@ -11,6 +11,7 @@ use simulation::{Cell, Simulation};
 use performance_monitor::PerformanceMonitor;
 use pulse::Pulse;
 use renderer::SingleColorRenderer;
+use renderer::Renderer;
 use tool::Tool;
 use view::View;
 

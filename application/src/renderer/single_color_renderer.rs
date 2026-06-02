@@ -15,15 +15,25 @@ pub struct SingleColorRenderer {
     canvas: Canvas,
 }
 
+impl super::Renderer for SingleColorRenderer {
+    fn fit_simulation(&mut self, simulation: &Simulation) {
+        self.canvas.fit_simulation(simulation);
+    }
+
+    fn render(&mut self, simulation: &Simulation) {
+        let num_of_chunks_total = simulation.num_of_chunks();
+        for chunk_index in 0..num_of_chunks_total {
+            let chunk = simulation.get_chunk_by_index(chunk_index);
+            self.render_chunk(chunk);
+        }
+    }
+}
+
 impl SingleColorRenderer {
     pub fn new() -> Self {
         return Self {
             canvas: Canvas::new(),
         };
-    }
-
-    pub fn fit_simulation(&mut self, simulation: &Simulation) {
-        self.canvas.fit_simulation(simulation);
     }
 
     fn render_chunk<'a>(&mut self, chunk: ChunkView<'a, Cell>) {
@@ -55,13 +65,5 @@ impl SingleColorRenderer {
             (chunk_coord.y as f32) * (Simulation::CHUNK_SIZE as f32),
             WHITE,
         );
-    }
-
-    pub fn render(&mut self, simulation: &Simulation) {
-        let num_of_chunks_total = simulation.num_of_chunks();
-        for chunk_index in 0..num_of_chunks_total {
-            let chunk = simulation.get_chunk_by_index(chunk_index);
-            self.render_chunk(chunk);
-        }
     }
 }
