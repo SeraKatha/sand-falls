@@ -41,6 +41,8 @@ impl TexturedRenderer {
             Image::from_file_with_format(include_bytes!("../../../assets/textures/sand.png"), Some(ImageFormat::Png)).unwrap(),
             Image::from_file_with_format(include_bytes!("../../../assets/textures/stone.png"), Some(ImageFormat::Png)).unwrap(),
             Image::from_file_with_format(include_bytes!("../../../assets/textures/water.png"), Some(ImageFormat::Png)).unwrap(),
+            Image::from_file_with_format(include_bytes!("../../../assets/textures/lava.png"), Some(ImageFormat::Png)).unwrap(),
+            Image::from_file_with_format(include_bytes!("../../../assets/textures/steam.png"), Some(ImageFormat::Png)).unwrap(),
         ];
         return Self {
             canvas: Canvas::new(),

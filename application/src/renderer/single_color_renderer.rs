@@ -8,6 +8,8 @@ fn cell_to_color(cell: Cell) -> [u8; 4] {
         Cell::Sand => [242, 203, 151, 255],
         Cell::Stone => [93, 93, 93, 255],
         Cell::Water => [0, 96, 255, 255],
+        Cell::Lava => [251, 110, 2, 255],
+        Cell::Steam => [255, 255, 255, 255],
     }
 }
 

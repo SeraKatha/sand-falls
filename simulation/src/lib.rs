@@ -14,8 +14,8 @@ pub use chunk_view::ChunkViewMut;
 mod world_view;
 pub use world_view::WorldView;
 pub use world_view::WorldViewMut;
-pub mod grid;
 mod cell;
+pub mod grid;
 pub use cell::Cell;
 
 pub enum Error {
@@ -23,10 +23,9 @@ pub enum Error {
     CellOutOfBounds,
 }
 
-
-
 pub struct Simulation {
     cells: DoubleBuffer<Vec<Cell>>,
+    transmutation_buffer: Vec<Cell>,
     push_buffer: Vec<IVec2>,
     pull_buffer: Vec<[bool; Self::NEIGHBOR_COUNT]>,
     world_size: IVec2,
@@ -43,9 +42,9 @@ impl Simulation {
         ivec2(1, -1),
         ivec2(-1, 0),
         ivec2(1, 0),
-        ivec2(-1, -1),
-        ivec2(0, -1),
-        ivec2(1, -1),
+        ivec2(-1, 1),
+        ivec2(0, 1),
+        ivec2(1, 1),
     ];
 
     pub fn new(world_size: IVec2) -> Result<Simulation, Error> {
@@ -57,12 +56,14 @@ impl Simulation {
         }
         let num_of_cells: usize = (world_size.x * world_size.y) as usize;
         let cells = Vec::from_iter(std::iter::repeat_with(|| Cell::Air).take(num_of_cells));
+        let transmutation_buffer = cells.clone();
 
         let push_buffer = Vec::from_iter(std::iter::repeat_with(|| IVec2::ZERO).take(num_of_cells));
         let pull_buffer = Vec::from_iter(std::iter::repeat_with(|| [false; 8]).take(num_of_cells));
 
         return Ok(Simulation {
             cells: DoubleBuffer::new(cells),
+            transmutation_buffer,
             world_size,
             push_buffer,
             pull_buffer,
@@ -107,7 +108,7 @@ impl Simulation {
                 }
             }
             Cell::Stone => IVec2::ZERO,
-            Cell::Water => {
+            Cell::Water | Cell::Lava => {
                 if cell_below.is_gaseous() {
                     ivec2(0, 1)
                 } else if cell_below_a.is_gaseous() {
@@ -123,6 +124,25 @@ impl Simulation {
                 } else if cell_above_a == Cell::Sand {
                     ivec2(0, -1) + offset_a
                 } else if cell_above_b == Cell::Sand {
+                    ivec2(0, -1) + offset_b
+                } else {
+                    IVec2::ZERO
+                }
+            }
+            Cell::Steam => {
+                if cell_above_a.is_empty() {
+                    ivec2(0, -1) + offset_a
+                } else if cell_above_b.is_empty() {
+                    ivec2(0, -1) + offset_b
+                } else if cell_side_a.is_empty() {
+                    offset_a
+                } else if cell_side_b.is_empty() {
+                    offset_b
+                } else if cell_above.is_liquid() {
+                    ivec2(0, -1)
+                } else if cell_above_a.is_liquid() {
+                    ivec2(0, -1) + offset_a
+                } else if cell_above_b.is_liquid() {
                     ivec2(0, -1) + offset_b
                 } else {
                     IVec2::ZERO
@@ -176,7 +196,7 @@ impl Simulation {
         }
     }
 
-    fn resolve_movements(
+    fn resolve_movement(
         write_chunk: &mut ChunkViewMut<Cell>,
         read_world: &WorldView<Cell>,
         read_world_push: &WorldView<IVec2>,
@@ -199,15 +219,42 @@ impl Simulation {
                 if target_pull[n] && center_push == -offset {
                     cell = read_world.get_cell(global_coord + center_push);
                 }
-            }
-            for n in 0..Self::NEIGHBOR_COUNT {
-                let offset = Self::NEIGHBOR_IDX2OFFSET[n];
                 let neighbor_push = read_world_push.get_cell(global_coord + offset);
                 if pull_field[n] && neighbor_push == -offset {
                     cell = read_world.get_cell(global_coord + offset);
                 }
             }
 
+            write_chunk.set_cell(cell, local_coord);
+        }
+    }
+
+    fn resolve_transmutation(write_chunk: &mut ChunkViewMut<Cell>, read_world: &WorldView<Cell>) {
+        let chunk_coord = grid::map_1d_to_2d(
+            write_chunk.get_chunk_index(),
+            read_world.size() / (Self::CHUNK_SIZE as i32),
+        );
+        for local_index in 0..Self::CELLS_PER_CHUNK {
+            let local_coord =
+                grid::map_1d_to_2d(local_index, IVec2::ONE * (Self::CHUNK_SIZE as i32));
+            let global_coord = chunk_coord * (Self::CHUNK_SIZE as i32) + local_coord;
+            let mut cell = read_world.get_cell(global_coord);
+
+            if cell == Cell::Water {
+                for offset in Self::NEIGHBOR_IDX2OFFSET {
+                    if read_world.get_cell(global_coord + offset).is_hot() {
+                        cell = Cell::Steam;
+                    }
+                }
+            }
+
+            if cell == Cell::Lava {
+                for offset in Self::NEIGHBOR_IDX2OFFSET {
+                    if read_world.get_cell(global_coord + offset) == Cell::Water {
+                        cell = Cell::Stone;
+                    }
+                }
+            }
             write_chunk.set_cell(cell, local_coord);
         }
     }
@@ -237,16 +284,29 @@ impl Simulation {
         let read_world_pull =
             WorldView::new(&self.pull_buffer, world_size, [false; Self::NEIGHBOR_COUNT]);
 
+        self.transmutation_buffer
+            .par_chunks_mut(Self::CELLS_PER_CHUNK)
+            .enumerate()
+            .map(|(chunk_index, chunk)| ChunkViewMut::new(chunk_index, chunk, world_size))
+            .for_each(|mut write_chunk| {
+                Self::resolve_movement(
+                    &mut write_chunk,
+                    &read_world,
+                    &read_world_push,
+                    &read_world_pull,
+                )
+            });
+        
+        let read_world_transformation = &WorldView::new(&self.transmutation_buffer, world_size, Cell::Stone);
+        
         write_buffer
             .par_chunks_mut(Self::CELLS_PER_CHUNK)
             .enumerate()
             .map(|(chunk_index, chunk)| ChunkViewMut::new(chunk_index, chunk, world_size))
             .for_each(|mut write_chunk| {
-                Self::resolve_movements(
+                Self::resolve_transmutation(
                     &mut write_chunk,
-                    &read_world,
-                    &read_world_push,
-                    &read_world_pull,
+                    &read_world_transformation,
                 )
             });
     }
